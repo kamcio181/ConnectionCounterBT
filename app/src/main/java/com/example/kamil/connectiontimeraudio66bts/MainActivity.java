@@ -1,4 +1,4 @@
-package com.example.kamil.connectioncounteraudio66bts;
+package com.example.kamil.connectiontimeraudio66bts;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         long hours = TimeUnit.SECONDS.toHours(totalSeconds);
         long minutes = TimeUnit.SECONDS.toMinutes(totalSeconds) - hours*60;
         long seconds = TimeUnit.SECONDS.toSeconds(totalSeconds) - minutes*60;
-        textView.setText(String.format("%d:%d:%d", hours, minutes, seconds));
+        textView.setText(String.format("%02d:%02d:%02d", hours, minutes, seconds));
     }
 
     @Override
