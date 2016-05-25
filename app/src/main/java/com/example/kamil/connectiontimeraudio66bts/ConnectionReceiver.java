@@ -35,12 +35,12 @@ public class ConnectionReceiver extends BroadcastReceiver {
                     Log.e(TAG, "Adapter connection state changed");
                     if(!((BluetoothDevice)(intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE))).getAddress().equals("00:1A:7D:E0:35:5F"))
                         break;
-                    Log.e(TAG, "66 Audio BTS");
+                    Log.e(TAG, "Audio 66 BTS");
                     int currentState2 = intent.getIntExtra(BluetoothAdapter.EXTRA_CONNECTION_STATE, 0);
                     int previousState2 = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_CONNECTION_STATE, 0);
                     if(currentState2 != previousState2) {
                         Log.e(TAG, "state changed");
-                        SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                        final SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                         final NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
                         final NotificationCompat.Builder builder= new NotificationCompat.Builder(context);
                         Intent startActivityIntent = new Intent(context, MainActivity.class);
@@ -55,19 +55,29 @@ public class ConnectionReceiver extends BroadcastReceiver {
                             runnable = new Runnable() {
                                 @Override
                                 public void run() {
-                                    Log.e(TAG, "saveTime ");
+                                    Log.e(TAG, "saveTime " + time);
                                     time++;
-                                    builder.setContentText(getContent(time));
-                                    manager.notify(notificationId, builder.build());
+                                    if((time/1000) % 60 == 0) {
+                                        Log.e(TAG, "time/60 " + "notify");
+                                        builder.setContentText(getContent(time));
+                                        manager.notify(notificationId, builder.build());
+                                    }
 
-                                    if (MainActivity.context != null)
+                                    if((time/1000) % 30 == 0) {
+                                        Log.e(TAG, "time/30 " + "save to file");
+                                        preferences.edit().putLong(TIME_KEY, time).apply();
+                                    }
+
+                                    if (MainActivity.context != null) {
+                                        Log.e(TAG, "activity is available" + "post result");
                                         MainActivity.context.postResult(time);
+                                    }
                                     handler.postDelayed(this, 1000);
                                 }
                             };
                             handler.postDelayed(runnable, 1000);
                         } else if (currentState2 == BluetoothAdapter.STATE_DISCONNECTED) {
-                            Log.e(TAG, "disconnected");
+                            Log.e(TAG, "disconnected " + time);
                             preferences.edit().putLong(TIME_KEY, time).apply();
                             builder.setOngoing(false);
                             builder.setContentText(getContent(time));
@@ -83,7 +93,6 @@ public class ConnectionReceiver extends BroadcastReceiver {
     private String getContent(long time){
         long hours = TimeUnit.SECONDS.toHours(time);
         long minutes = TimeUnit.SECONDS.toMinutes(time) - hours*60;
-        long seconds = TimeUnit.SECONDS.toSeconds(time) - minutes*60;
-        return (String.format("%02d:%02d:%02d", hours, minutes, seconds));
+        return (String.format("%02d:%02d", hours, minutes));
     }
 }
