@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -18,10 +19,11 @@ import java.util.concurrent.TimeUnit;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     public static MainActivity context = null;
     private static final String PREFS_NAME = "PrefsName";
-    private static final String TIME_KEY = "TimeKey";
+    private static final String PLAYING_TIME_KEY = "playing";
+    private static final String STANDBY_TIME_KEY = "standby";
     private Button button, button2;
     private TextView textView;
-    private SharedPreferences preferences; //TODO check if music is playing
+    private SharedPreferences preferences;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,15 +44,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         final RadioButton setTimeRadioButton = (RadioButton) layout.findViewById(R.id.radioButton);
         final EditText minutesEditText = (EditText) layout.findViewById(R.id.editText);
 
-        return builder.setTitle("Set time").setView(layout).setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+        return builder.setTitle("Set playing time").setView(layout).setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                long value = minutesEditText.getText().toString().length() > 0? (Long.parseLong(minutesEditText.getText().toString()))*60000 : 0;
+                long value = minutesEditText.getText().toString().length() > 0? (Long.parseLong(minutesEditText.getText().toString()))*60 : 0;
                 if(!setTimeRadioButton.isChecked()){
-                    value = preferences.getLong(TIME_KEY, 0) + value;
+                    value = preferences.getLong(PLAYING_TIME_KEY, 0) + value;
                 }
-                preferences.edit().putLong(TIME_KEY, value).apply();
-                postResult(value);
+                preferences.edit().putLong(PLAYING_TIME_KEY, value).apply();
+                Log.e("Main", "setTime " + value);
+                postResult(value, preferences.getLong(STANDBY_TIME_KEY, 0));
             }
         }).setNegativeButton("Cancel", null).create();
     }
@@ -58,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onStart() {
         super.onStart();
-        postResult(preferences.getLong(TIME_KEY, 0));
+        postResult(preferences.getLong(PLAYING_TIME_KEY, 0), preferences.getLong(STANDBY_TIME_KEY, 0));
     }
 
     @Override
@@ -73,19 +76,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         context = this;
     }
 
-    public void postResult(long totalSeconds){
-        long hours = TimeUnit.SECONDS.toHours(totalSeconds);
-        long minutes = TimeUnit.SECONDS.toMinutes(totalSeconds) - hours*60;
-        long seconds = TimeUnit.SECONDS.toSeconds(totalSeconds) - minutes*60;
-        textView.setText(String.format("%02d:%02d:%02d", hours, minutes, seconds));
+    public void postResult(long totalSecondsPlay, long totalSecondsStandby){
+        long hours = TimeUnit.SECONDS.toHours(totalSecondsPlay);
+        long minutes = TimeUnit.SECONDS.toMinutes(totalSecondsPlay) - hours*60;
+        long seconds =totalSecondsPlay - minutes*60 - hours*3600;
+        long hours2 = TimeUnit.SECONDS.toHours(totalSecondsStandby);
+        long minutes2 = TimeUnit.SECONDS.toMinutes(totalSecondsStandby) - hours2*60;
+        long seconds2 = totalSecondsStandby - minutes2*60 - hours2*3600;
+        long totalTime = totalSecondsPlay + totalSecondsStandby;
+        long hours3 = TimeUnit.SECONDS.toHours(totalTime);
+        long minutes3 = TimeUnit.SECONDS.toMinutes(totalTime) - hours3*60;
+        long seconds3 = totalTime - minutes3*60 - hours3*3600;
+        textView.setText("Total: " + String.format("%02d:%02d:%02d", hours3, minutes3, seconds3) +
+                "\nPlaying: " + String.format("%02d:%02d:%02d", hours, minutes, seconds) +
+                "\nStandby: " + String.format("%02d:%02d:%02d", hours2, minutes2, seconds2));
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.button:
-                preferences.edit().remove(TIME_KEY).apply();
-                postResult(0);
+                preferences.edit().remove(PLAYING_TIME_KEY).remove(STANDBY_TIME_KEY).apply();
+                postResult(0, 0);
                 break;
             case R.id.button2:
                 setTimeDialog().show();

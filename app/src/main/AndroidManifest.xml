@@ -24,8 +24,7 @@
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.bluetooth.headset.profile.action.AUDIO_STATE_CHANGE"/>
-                <action android:name="android.bluetooth.headset.action.CONNECTION_STATE_CHANGED" />
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
                 <action android:name="android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
