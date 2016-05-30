@@ -58,56 +58,59 @@ public class ConnectionReceiver extends BroadcastReceiver {
 
                         if (currentState2 == BluetoothAdapter.STATE_CONNECTED) {
                             Log.e(TAG, "connected");
-                            timePlaying = preferences.getLong(PLAYING_TIME_KEY, 0);
-                            timeStandby = preferences.getLong(STANDBY_TIME_KEY, 0);
-                            //builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
-                            //notificationManager.notify(notificationId, builder.build());
-                            notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
-                            runnable = new Runnable() {
-                                @Override
-                                public void run() {
-                                    Log.e(TAG, "saveTime " + timePlaying + " " + timeStandby);
-                                    long time;
-                                    if(audioManager.isMusicActive()){
-                                        Log.e(TAG, "is music active true");
-                                        timePlaying++;
-                                        time = timePlaying;
-                                    } else {
-                                        Log.e(TAG, "is music active false");
-                                        timeStandby++;
-                                        time = timeStandby;
-                                    }
-                                    if(time % 60 == 0) {
-                                        Log.e(TAG, "timePlaying/60 " + "notify");
-//                                        builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
-//                                        notificationManager.notify(notificationId, builder.build());
-                                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
-                                    }
-
-                                    if(time % 30 == 0) {
-                                        Log.e(TAG, "timePlaying/30 " + "save to file");
-                                        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-                                                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
-                                    }
-
-                                    if (MainActivity.context != null) {
-                                        Log.e(TAG, "activity is available" + "post result");
-                                        MainActivity.context.postResult(timePlaying, timeStandby);
-                                    }
-                                    handler.postDelayed(this, 1000);
-                                }
-                            };
-                            handler.postDelayed(runnable, 1000);
+                            context.startService(new Intent(context, MyService.class));
+//                            timePlaying = preferences.getLong(PLAYING_TIME_KEY, 0);
+//                            timeStandby = preferences.getLong(STANDBY_TIME_KEY, 0);
+//                            //builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
+//                            //notificationManager.notify(notificationId, builder.build());
+//                            notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+//                            runnable = new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    Log.e(TAG, "saveTime " + timePlaying + " " + timeStandby);
+//                                    long time;
+//                                    if(audioManager.isMusicActive()){
+//                                        Log.e(TAG, "is music active true");
+//                                        timePlaying++;
+//                                        time = timePlaying;
+//                                    } else {
+//                                        Log.e(TAG, "is music active false");
+//                                        timeStandby++;
+//                                        time = timeStandby;
+//                                    }
+//                                    if(time % 60 == 0) {
+//                                        Log.e(TAG, "timePlaying/60 " + "notify");
+////                                        builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
+////                                        notificationManager.notify(notificationId, builder.build());
+//                                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+//                                    }
+//
+//                                    if(time % 30 == 0) {
+//                                        Log.e(TAG, "timePlaying/30 " + "save to file");
+//                                        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
+//                                                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
+//                                    }
+//
+//                                    if (MainActivity.context != null) {
+//                                        Log.e(TAG, "activity is available" + "post result");
+//                                        MainActivity.context.postResult(timePlaying, timeStandby);
+//                                    }
+//                                    handler.postDelayed(this, 1000);
+//                                }
+//                            };
+//                            handler.postDelayed(runnable, 1000);
                         } else if (currentState2 == BluetoothAdapter.STATE_DISCONNECTED &&
                                 previousState2 == BluetoothAdapter.STATE_CONNECTED) {
-                            Log.e(TAG, "disconnected " + timePlaying + " " + timeStandby);
-                            preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-                                    .putLong(STANDBY_TIME_KEY, timeStandby).apply();
-                            builder.setOngoing(false);
-//                            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, true)));
-//                            notificationManager.notify(notificationId, builder.build());
-                            notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
-                            handler.removeCallbacks(runnable);
+                            context.startService(new Intent(context, MyService.class));
+                            context.stopService(new Intent(context, MyService.class));
+//                            Log.e(TAG, "disconnected " + timePlaying + " " + timeStandby);
+//                            preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
+//                                    .putLong(STANDBY_TIME_KEY, timeStandby).apply();
+//                            builder.setOngoing(false);
+////                            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, true)));
+////                            notificationManager.notify(notificationId, builder.build());
+//                            notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
+//                            handler.removeCallbacks(runnable);
                         }
                     }
                     break;
