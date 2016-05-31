@@ -1,5 +1,6 @@
 package com.example.kamil.connectiontimeraudio66bts;
 
+import android.app.ActivityManager;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
@@ -42,6 +43,7 @@ public class ConnectionReceiver extends BroadcastReceiver {
             builder.setContentIntent(startActivityPendingIntent).
                     setSmallIcon(R.mipmap.ic_launcher).setOngoing(true);
 
+            Intent serviceIntent = new Intent(context, MyService.class);
             switch (action){
                 case BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED:
                     Log.e(TAG, "Adapter connection state changed");
@@ -58,7 +60,8 @@ public class ConnectionReceiver extends BroadcastReceiver {
 
                         if (currentState2 == BluetoothAdapter.STATE_CONNECTED) {
                             Log.e(TAG, "connected");
-                            context.startService(new Intent(context, MyService.class));
+                            serviceIntent.putExtra(Constants.connected, true);
+                            context.startService(serviceIntent);
 //                            timePlaying = preferences.getLong(PLAYING_TIME_KEY, 0);
 //                            timeStandby = preferences.getLong(STANDBY_TIME_KEY, 0);
 //                            //builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
@@ -101,8 +104,7 @@ public class ConnectionReceiver extends BroadcastReceiver {
 //                            handler.postDelayed(runnable, 1000);
                         } else if (currentState2 == BluetoothAdapter.STATE_DISCONNECTED &&
                                 previousState2 == BluetoothAdapter.STATE_CONNECTED) {
-                            context.startService(new Intent(context, MyService.class));
-                            context.stopService(new Intent(context, MyService.class));
+                            context.stopService(serviceIntent);
 //                            Log.e(TAG, "disconnected " + timePlaying + " " + timeStandby);
 //                            preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
 //                                    .putLong(STANDBY_TIME_KEY, timeStandby).apply();
@@ -116,19 +118,40 @@ public class ConnectionReceiver extends BroadcastReceiver {
                     break;
                 case BluetoothAdapter.ACTION_STATE_CHANGED:
                     if(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1) == BluetoothAdapter.STATE_OFF
-                            && timePlaying > 0){
-                        Log.e(TAG, "bluetooth off " + timePlaying + " " + timeStandby);
-                        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-                                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
-                        builder.setOngoing(false);
+                            && isServiceRunning(context)){
+                        context.stopService(serviceIntent);
+                    }
+//                        Log.e(TAG, "bluetooth off " + timePlaying + " " + timeStandby);
+//                        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
+//                                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
+//                        builder.setOngoing(false);
 //                        builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, true)));
 //                        notificationManager.notify(notificationId, builder.build());
-                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
-                        handler.removeCallbacks(runnable);
-                    }
+//                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
+//                        handler.removeCallbacks(runnable);
+//                    }
+                    break;
+                case Intent.ACTION_SCREEN_ON:
+                    serviceIntent.putExtra(Constants.screenOn, true);
+                    context.startService(serviceIntent);
+
+                    break;
+                case Intent.ACTION_SCREEN_OFF:
+                    serviceIntent.putExtra(Constants.screenOn, false);
+                    context.startService(serviceIntent);
                     break;
             }
         }
+    }
+
+    private boolean isServiceRunning(Context context){
+        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (MyService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String getContent(long playingTime, long standbyTime, boolean addSeconds){
