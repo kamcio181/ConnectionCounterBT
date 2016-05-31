@@ -17,13 +17,6 @@ import java.util.concurrent.TimeUnit;
 
 public class ConnectionReceiver extends BroadcastReceiver {
     private static final String TAG = "ConnectionReceiver";
-    private static final String PREFS_NAME = "PrefsName";
-    private static final String PLAYING_TIME_KEY = "playing";
-    private static final String STANDBY_TIME_KEY = "standby";
-    private static Runnable runnable;
-    private static long timePlaying, timeStandby;
-    private static int notificationId = 1;
-    private static final android.os.Handler handler = new android.os.Handler();
     public ConnectionReceiver() {
     }
 
@@ -32,16 +25,6 @@ public class ConnectionReceiver extends BroadcastReceiver {
         Log.e(TAG, "onReceive");
         if(intent != null && intent.getAction() !=null){
             String action = intent.getAction();
-
-            final SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            final AudioManager audioManager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
-            final NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            final NotificationCompat.Builder builder= new NotificationCompat.Builder(context);
-            Intent startActivityIntent = new Intent(context, MainActivity.class);
-            PendingIntent startActivityPendingIntent = PendingIntent.getActivity(context,
-                    0, startActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            builder.setContentIntent(startActivityPendingIntent).
-                    setSmallIcon(R.mipmap.ic_launcher).setOngoing(true);
 
             Intent serviceIntent = new Intent(context, MyService.class);
             switch (action){
@@ -60,59 +43,11 @@ public class ConnectionReceiver extends BroadcastReceiver {
 
                         if (currentState2 == BluetoothAdapter.STATE_CONNECTED) {
                             Log.e(TAG, "connected");
-                            serviceIntent.putExtra(Constants.connected, true);
                             context.startService(serviceIntent);
-//                            timePlaying = preferences.getLong(PLAYING_TIME_KEY, 0);
-//                            timeStandby = preferences.getLong(STANDBY_TIME_KEY, 0);
-//                            //builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
-//                            //notificationManager.notify(notificationId, builder.build());
-//                            notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
-//                            runnable = new Runnable() {
-//                                @Override
-//                                public void run() {
-//                                    Log.e(TAG, "saveTime " + timePlaying + " " + timeStandby);
-//                                    long time;
-//                                    if(audioManager.isMusicActive()){
-//                                        Log.e(TAG, "is music active true");
-//                                        timePlaying++;
-//                                        time = timePlaying;
-//                                    } else {
-//                                        Log.e(TAG, "is music active false");
-//                                        timeStandby++;
-//                                        time = timeStandby;
-//                                    }
-//                                    if(time % 60 == 0) {
-//                                        Log.e(TAG, "timePlaying/60 " + "notify");
-////                                        builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
-////                                        notificationManager.notify(notificationId, builder.build());
-//                                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
-//                                    }
-//
-//                                    if(time % 30 == 0) {
-//                                        Log.e(TAG, "timePlaying/30 " + "save to file");
-//                                        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-//                                                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
-//                                    }
-//
-//                                    if (MainActivity.context != null) {
-//                                        Log.e(TAG, "activity is available" + "post result");
-//                                        MainActivity.context.postResult(timePlaying, timeStandby);
-//                                    }
-//                                    handler.postDelayed(this, 1000);
-//                                }
-//                            };
-//                            handler.postDelayed(runnable, 1000);
+
                         } else if (currentState2 == BluetoothAdapter.STATE_DISCONNECTED &&
                                 previousState2 == BluetoothAdapter.STATE_CONNECTED) {
                             context.stopService(serviceIntent);
-//                            Log.e(TAG, "disconnected " + timePlaying + " " + timeStandby);
-//                            preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-//                                    .putLong(STANDBY_TIME_KEY, timeStandby).apply();
-//                            builder.setOngoing(false);
-////                            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, true)));
-////                            notificationManager.notify(notificationId, builder.build());
-//                            notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
-//                            handler.removeCallbacks(runnable);
                         }
                     }
                     break;
@@ -121,24 +56,6 @@ public class ConnectionReceiver extends BroadcastReceiver {
                             && isServiceRunning(context)){
                         context.stopService(serviceIntent);
                     }
-//                        Log.e(TAG, "bluetooth off " + timePlaying + " " + timeStandby);
-//                        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-//                                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
-//                        builder.setOngoing(false);
-//                        builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, true)));
-//                        notificationManager.notify(notificationId, builder.build());
-//                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
-//                        handler.removeCallbacks(runnable);
-//                    }
-                    break;
-                case Intent.ACTION_SCREEN_ON:
-                    serviceIntent.putExtra(Constants.screenOn, true);
-                    context.startService(serviceIntent);
-
-                    break;
-                case Intent.ACTION_SCREEN_OFF:
-                    serviceIntent.putExtra(Constants.screenOn, false);
-                    context.startService(serviceIntent);
                     break;
             }
         }
@@ -152,49 +69,5 @@ public class ConnectionReceiver extends BroadcastReceiver {
             }
         }
         return false;
-    }
-
-    private String getContent(long playingTime, long standbyTime, boolean addSeconds){
-        long hours = TimeUnit.SECONDS.toHours(playingTime);
-        long minutes = TimeUnit.SECONDS.toMinutes(playingTime) - hours*60;
-        long hours2 = TimeUnit.SECONDS.toHours(standbyTime);
-        long minutes2 = TimeUnit.SECONDS.toMinutes(standbyTime) - hours2*60;
-        if(addSeconds){
-            long seconds = playingTime - minutes*60;
-            long seconds2 = standbyTime - minutes2*60;
-            return ("Playing: " + String.format("%02d:%02d:%02d", hours, minutes, seconds) +
-                    "\nStandby: " + String.format("%02d:%02d:%02d", hours2, minutes2, seconds2));
-        } else
-            return ("Playing: " + String.format("%02d:%02d", hours, minutes) +
-                    "\nStandby: " + String.format("%02d:%02d", hours2, minutes2));
-    }
-
-    private NotificationCompat.Builder getContent(NotificationCompat.Builder builder, long playingTime, long standbyTime, boolean addSeconds){
-        long hours = TimeUnit.SECONDS.toHours(playingTime);
-        long minutes = TimeUnit.SECONDS.toMinutes(playingTime) - hours*60;
-        long hours2 = TimeUnit.SECONDS.toHours(standbyTime);
-        long minutes2 = TimeUnit.SECONDS.toMinutes(standbyTime) - hours2*60;
-        long totalTime = playingTime + standbyTime;
-        long hours3 = TimeUnit.SECONDS.toHours(totalTime);
-        long minutes3 = TimeUnit.SECONDS.toMinutes(totalTime) - hours3*60;
-
-        String content;
-        String title;
-
-        if(addSeconds){
-            long seconds = playingTime - minutes*60 - hours*3600;
-            long seconds2 = standbyTime - minutes2*60 - hours2*3600;
-            long seconds3 = totalTime - minutes3*60 - hours3*3600;
-            content = "Playing: " + String.format("%02d:%02d:%02d", hours, minutes, seconds) +
-                    "\nStandby: " + String.format("%02d:%02d:%02d", hours2, minutes2, seconds2);
-            title = "Total: "  + String.format("%02d:%02d:%02d", hours3, minutes3, seconds3);
-
-        } else {
-            content = "Playing: " + String.format("%02d:%02d", hours, minutes) +
-                    "\nStandby: " + String.format("%02d:%02d", hours2, minutes2);
-            title =  "Total: "  + String.format("%02d:%02d", hours3, minutes3);
-        }
-
-        return builder.setStyle(new NotificationCompat.BigTextStyle().bigText(content)).setContentTitle(title);
     }
 }

@@ -1,7 +1,11 @@
 package com.example.kamil.connectiontimeraudio66bts;
 
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -13,11 +17,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
-    public static MainActivity context = null;
     private static final String PREFS_NAME = "PrefsName";
     private static final String PLAYING_TIME_KEY = "playing";
     private static final String STANDBY_TIME_KEY = "standby";
@@ -36,6 +40,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
     }
+
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Bundle bundle = intent.getExtras();
+            if (bundle != null) {
+                postResult(bundle.getLong(Constants.PLAYING_TIME), bundle.getLong(Constants.STANDBY_TIME));
+            }
+        }
+    };
 
     private Dialog setTimeDialog(){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -65,15 +80,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        context = null;
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
-        context = this;
+        registerReceiver(receiver, new IntentFilter(MyService.NOTIFICATION));
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(receiver);
     }
 
     public void postResult(long totalSecondsPlay, long totalSecondsStandby){
