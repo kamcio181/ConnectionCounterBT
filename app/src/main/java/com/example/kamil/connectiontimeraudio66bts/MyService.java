@@ -30,6 +30,8 @@ public class MyService extends Service {
     private static int notificationId = 1;
     private static final android.os.Handler handler = new android.os.Handler();
     private static boolean wasScreenOnPreviously;
+    private static StringBuilder stringBuilder;
+    private static boolean isScreenOn;
 
     public MyService() {
     }
@@ -44,7 +46,10 @@ public class MyService extends Service {
         notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         timePlaying = preferences.getLong(PLAYING_TIME_KEY, 0);
         timeStandby = preferences.getLong(STANDBY_TIME_KEY, 0);
-        Log.e(TAG, "playing " + timePlaying + " standby " + timeStandby);
+        stringBuilder = new StringBuilder();
+
+        Log.e(TAG, stringBuilder.delete(0, stringBuilder.length()).append("playing ").
+                append(timePlaying).append(" standby ").append(timeStandby).toString());
 
         builder= new NotificationCompat.Builder(this);
         Intent startActivityIntent = new Intent(this, MainActivity.class);
@@ -56,38 +61,32 @@ public class MyService extends Service {
         runnable = new Runnable() {
             @Override
             public void run() {
-                Log.e(TAG, "saveTime " + timePlaying + " " + timeStandby);
-                long time;
-                boolean isScreenOn = isScreenOn();
-                Log.e(TAG, "isScreenOn " + isScreenOn);
+                Log.e(TAG, stringBuilder.delete(0, stringBuilder.length()).append("saveTime ").
+                        append(timePlaying).append(" ").append(timeStandby).toString());
+
+                isScreenOn = isScreenOn();
+                Log.e(TAG, stringBuilder.delete(0, stringBuilder.length()).append("isScreenOn ").
+                        append(isScreenOn).toString());
                 if(audioManager.isMusicActive()){
-                    Log.e(TAG, "is music active true");
+                    Log.e(TAG, "music IS active");
                     timePlaying++;
-                    time = timePlaying;
+                    if(timePlaying % 60 == 0 && isScreenOn) {
+                        Log.e(TAG, "timePlaying/60 notify");
+                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+                    }
                 } else {
-                    Log.e(TAG, "is music active false");
+                    Log.e(TAG, "music is NOT active");
                     timeStandby++;
-                    time = timeStandby;
+                    if(timeStandby % 60 == 0 && isScreenOn) {
+                        Log.e(TAG, "timePlaying/60 notify");
+                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+                    }
                 }
-
-                if(time % 60 == 0 && isScreenOn) {
-                    Log.e(TAG, "timePlaying/60 " + "notify");
-//                                        builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getContent(timePlaying, timeStandby, false)));
-//                                        notificationManager.notify(notificationId, builder.build());
-                    notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
-                }
-
-//                if(time % 30 == 0) {
-//                    Log.e(TAG, "timePlaying/30 " + "save to file");
-//                    preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-//                            .putLong(STANDBY_TIME_KEY, timeStandby).apply();
-//                }
-
-                publishTime();
 
                 if (isScreenOn && !wasScreenOnPreviously){
                     Log.e(TAG, "screen was turned on");
                     notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+                    publishTime();
                 }
 
                 wasScreenOnPreviously = isScreenOn;
@@ -98,7 +97,8 @@ public class MyService extends Service {
 
     private boolean isScreenOn(){
         DisplayManager dm = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        for (Display display : dm.getDisplays()) {
+        Display[] displays = dm.getDisplays();
+        for (Display display : displays) {
             if (display.getState() != Display.STATE_OFF) {
                 return true;
             }
@@ -171,14 +171,18 @@ public class MyService extends Service {
             long seconds = playingTime - minutes*60 - hours*3600;
             long seconds2 = standbyTime - minutes2*60 - hours2*3600;
             long seconds3 = totalTime - minutes3*60 - hours3*3600;
-            content = "Playing: " + String.format("%02d:%02d:%02d", hours, minutes, seconds) +
-                    "\nStandby: " + String.format("%02d:%02d:%02d", hours2, minutes2, seconds2);
-            title = "Total: "  + String.format("%02d:%02d:%02d", hours3, minutes3, seconds3);
+            content = stringBuilder.delete(0, stringBuilder.length()).append("Playing: ").
+                    append(String.format("%02d:%02d:%02d", hours, minutes, seconds)).
+                    append("\nStandby: ").append(String.format("%02d:%02d:%02d", hours2, minutes2, seconds2)).toString();
+            title = stringBuilder.delete(0, stringBuilder.length()).append("Total: ").
+                    append(String.format("%02d:%02d:%02d", hours3, minutes3, seconds3)).toString();
 
         } else {
-            content = "Playing: " + String.format("%02d:%02d", hours, minutes) +
-                    "\nStandby: " + String.format("%02d:%02d", hours2, minutes2);
-            title =  "Total: "  + String.format("%02d:%02d", hours3, minutes3);
+            content = stringBuilder.delete(0, stringBuilder.length()).append("Playing: ").
+                    append(String.format("%02d:%02d", hours, minutes)).
+                    append("\nStandby: ").append(String.format("%02d:%02d", hours2, minutes2)).toString();
+            title = stringBuilder.delete(0, stringBuilder.length()).append("Total: ").
+                    append(String.format("%02d:%02d", hours3, minutes3)).toString();
         }
 
         return builder.setStyle(new NotificationCompat.BigTextStyle().bigText(content)).setContentTitle(title);

@@ -23,8 +23,8 @@
 
         <receiver
             android:name=".ConnectionReceiver"
-            android:enabled="true"
-            android:process=":com.example.kamil.connectiontimeraudio66bts.process">
+            android:enabled="true">
+            <!--android:process=":com.example.kamil.connectiontimeraudio66bts.process">-->
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
                 <action android:name="android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED" />
@@ -33,8 +33,8 @@
 
         <service
             android:name=".MyService"
-            android:enabled="true"
-            android:process=":com.example.kamil.connectiontimeraudio66bts.process"/>
+            android:enabled="true"/>
+            <!--android:process=":com.example.kamil.connectiontimeraudio66bts.process"/>-->
     </application>
 
 </manifest>
