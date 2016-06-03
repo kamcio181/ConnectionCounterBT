@@ -1,4 +1,4 @@
-package com.example.kamil.connectiontimeraudio66bts;
+package com.example.kamil.audio66btstimer;
 
 import android.app.Notification;
 import android.app.NotificationManager;

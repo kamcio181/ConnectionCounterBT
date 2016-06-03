@@ -1,4 +1,4 @@
-package com.example.kamil.connectiontimeraudio66bts;
+package com.example.kamil.audio66btstimer;
 
 /**
  * Created by kamil on 30.05.16.

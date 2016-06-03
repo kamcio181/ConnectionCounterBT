@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.kamil.connectiontimeraudio66bts">
+    package="com.example.kamil.audio66btstimer">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
@@ -11,7 +11,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.kamil.audio66btstimer.MainActivity"
             android:excludeFromRecents="true"
             android:noHistory="true">
             <intent-filter>
@@ -22,9 +22,8 @@
         </activity>
 
         <receiver
-            android:name=".ConnectionReceiver"
+            android:name="com.example.kamil.audio66btstimer.ConnectionReceiver"
             android:enabled="true">
-            <!--android:process=":com.example.kamil.connectiontimeraudio66bts.process">-->
             <intent-filter>
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
                 <action android:name="android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED" />
@@ -32,9 +31,8 @@
         </receiver>
 
         <service
-            android:name=".MyService"
+            android:name="com.example.kamil.audio66btstimer.MyService"
             android:enabled="true"/>
-            <!--android:process=":com.example.kamil.connectiontimeraudio66bts.process"/>-->
     </application>
 
 </manifest>
