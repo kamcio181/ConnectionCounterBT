@@ -1,5 +1,6 @@
 package com.example.kamil.connectiontimeraudio66bts;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -9,7 +10,6 @@ import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.media.AudioManager;
 import android.os.IBinder;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.Display;
 
@@ -25,7 +25,7 @@ public class MyService extends Service {
     private static Runnable runnable;
     private static AudioManager audioManager;
     private static NotificationManager notificationManager;
-    private static NotificationCompat.Builder builder;
+    private static Notification.Builder builder;
     private static long timePlaying, timeStandby;
     private static int notificationId = 1;
     private static final android.os.Handler handler = new android.os.Handler();
@@ -51,7 +51,7 @@ public class MyService extends Service {
         Log.e(TAG, stringBuilder.delete(0, stringBuilder.length()).append("playing ").
                 append(timePlaying).append(" standby ").append(timeStandby).toString());
 
-        builder= new NotificationCompat.Builder(this);
+        builder= new Notification.Builder(this);
         Intent startActivityIntent = new Intent(this, MainActivity.class);
         PendingIntent startActivityPendingIntent = PendingIntent.getActivity(this,
                 0, startActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -86,6 +86,9 @@ public class MyService extends Service {
                 if (isScreenOn && !wasScreenOnPreviously){
                     Log.e(TAG, "screen was turned on");
                     notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+                }
+
+                if(isScreenOn){
                     publishTime();
                 }
 
@@ -155,7 +158,7 @@ public class MyService extends Service {
         sendBroadcast(intent);
     }
 
-    private NotificationCompat.Builder getContent(NotificationCompat.Builder builder, long playingTime, long standbyTime, boolean addSeconds){
+    private Notification.Builder getContent(Notification.Builder builder, long playingTime, long standbyTime, boolean addSeconds){
         long hours = TimeUnit.SECONDS.toHours(playingTime);
         long minutes = TimeUnit.SECONDS.toMinutes(playingTime) - hours*60;
         long hours2 = TimeUnit.SECONDS.toHours(standbyTime);
@@ -171,20 +174,25 @@ public class MyService extends Service {
             long seconds = playingTime - minutes*60 - hours*3600;
             long seconds2 = standbyTime - minutes2*60 - hours2*3600;
             long seconds3 = totalTime - minutes3*60 - hours3*3600;
-            content = stringBuilder.delete(0, stringBuilder.length()).append("Playing: ").
-                    append(String.format("%02d:%02d:%02d", hours, minutes, seconds)).
-                    append("\nStandby: ").append(String.format("%02d:%02d:%02d", hours2, minutes2, seconds2)).toString();
-            title = stringBuilder.delete(0, stringBuilder.length()).append("Total: ").
-                    append(String.format("%02d:%02d:%02d", hours3, minutes3, seconds3)).toString();
+
+            content = stringBuilder.delete(0, stringBuilder.length())
+                    .append(getString(R.string.playing)).append(": ")
+                    .append(String.format("%02d:%02d:%02d", hours, minutes, seconds))
+                    .append("\n").append(getString(R.string.standby)).append(": ")
+                    .append(String.format("%02d:%02d:%02d", hours2, minutes2, seconds2)).toString();
+            title = stringBuilder.delete(0, stringBuilder.length()).append(getString(R.string.total)).append(": ")
+                    .append(String.format("%02d:%02d:%02d", hours3, minutes3, seconds3)).toString();
 
         } else {
-            content = stringBuilder.delete(0, stringBuilder.length()).append("Playing: ").
-                    append(String.format("%02d:%02d", hours, minutes)).
-                    append("\nStandby: ").append(String.format("%02d:%02d", hours2, minutes2)).toString();
-            title = stringBuilder.delete(0, stringBuilder.length()).append("Total: ").
-                    append(String.format("%02d:%02d", hours3, minutes3)).toString();
+            content = stringBuilder.delete(0, stringBuilder.length())
+                    .append(getString(R.string.playing)).append(": ")
+                    .append(String.format("%02d:%02d", hours, minutes))
+                    .append("\n").append(getString(R.string.standby)).append(": ")
+                    .append(String.format("%02d:%02d", hours2, minutes2)).toString();
+            title = stringBuilder.delete(0, stringBuilder.length()).append(getString(R.string.total)).append(": ")
+                    .append(String.format("%02d:%02d", hours3, minutes3)).toString();
         }
 
-        return builder.setStyle(new NotificationCompat.BigTextStyle().bigText(content)).setContentTitle(title);
+        return builder.setStyle(new Notification.BigTextStyle().bigText(content)).setContentTitle(title);
     }
 }

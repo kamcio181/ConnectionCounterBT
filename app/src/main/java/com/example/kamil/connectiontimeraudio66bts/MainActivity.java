@@ -1,5 +1,7 @@
 package com.example.kamil.connectiontimeraudio66bts;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -8,12 +10,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.TextView;
@@ -21,22 +23,18 @@ import android.widget.Toast;
 
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends Activity {
     private static final String PREFS_NAME = "PrefsName";
     private static final String PLAYING_TIME_KEY = "playing";
     private static final String STANDBY_TIME_KEY = "standby";
-    private Button button, button2;
     private TextView textView;
     private SharedPreferences preferences;
+    private final StringBuilder builder = new StringBuilder();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         textView = (TextView) findViewById(R.id.textView);
-        button = (Button) findViewById(R.id.button);
-        button2 = (Button) findViewById(R.id.button2);
-        button.setOnClickListener(this);
-        button2.setOnClickListener(this);
 
         preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
     }
@@ -51,27 +49,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     };
-
-    private Dialog setTimeDialog(){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        LayoutInflater inflater = getLayoutInflater();
-        View layout = inflater.inflate(R.layout.dialog_set_time, null);
-        final RadioButton setTimeRadioButton = (RadioButton) layout.findViewById(R.id.radioButton);
-        final EditText minutesEditText = (EditText) layout.findViewById(R.id.editText);
-
-        return builder.setTitle("Set playing time").setView(layout).setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                long value = minutesEditText.getText().toString().length() > 0? (Long.parseLong(minutesEditText.getText().toString()))*60 : 0;
-                if(!setTimeRadioButton.isChecked()){
-                    value = preferences.getLong(PLAYING_TIME_KEY, 0) + value;
-                }
-                preferences.edit().putLong(PLAYING_TIME_KEY, value).apply();
-                Log.e("Main", "setTime " + value);
-                postResult(value, preferences.getLong(STANDBY_TIME_KEY, 0));
-            }
-        }).setNegativeButton("Cancel", null).create();
-    }
 
     @Override
     protected void onStart() {
@@ -101,21 +78,77 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         long hours3 = TimeUnit.SECONDS.toHours(totalTime);
         long minutes3 = TimeUnit.SECONDS.toMinutes(totalTime) - hours3*60;
         long seconds3 = totalTime - minutes3*60 - hours3*3600;
-        textView.setText("Total: " + String.format("%02d:%02d:%02d", hours3, minutes3, seconds3) +
-                "\nPlaying: " + String.format("%02d:%02d:%02d", hours, minutes, seconds) +
-                "\nStandby: " + String.format("%02d:%02d:%02d", hours2, minutes2, seconds2));
+        builder.delete(0, builder.length()).append("<b>").append(getString(R.string.total)).append(": </b>")
+                .append(String.format("%02d:%02d:%02d", hours3, minutes3, seconds3))
+                .append("<br><b>").append(getString(R.string.playing)).append(": </b>")
+                .append(String.format("%02d:%02d:%02d", hours, minutes, seconds))
+                .append("<br><b>").append(getString(R.string.standby)).append(": </b>")
+                .append(String.format("%02d:%02d:%02d", hours2, minutes2, seconds2));
+        textView.setText(Html.fromHtml(builder.toString()));
     }
 
     @Override
-    public void onClick(View v) {
-        switch (v.getId()){
-            case R.id.button:
-                preferences.edit().remove(PLAYING_TIME_KEY).remove(STANDBY_TIME_KEY).apply();
-                postResult(0, 0);
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id){
+            case R.id.action_reset:
+                getConfirmationDialog("Do you want to reset timer?", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Toast.makeText(MainActivity.this, R.string.timer_cleared, Toast.LENGTH_SHORT).show();
+                        preferences.edit().remove(PLAYING_TIME_KEY).remove(STANDBY_TIME_KEY).apply();
+                        postResult(0, 0);
+                    }
+                }).show();
                 break;
-            case R.id.button2:
+            case R.id.action_set:
                 setTimeDialog().show();
                 break;
         }
+        return super.onOptionsItemSelected(item);
+    }
+    private Dialog getConfirmationDialog(String title, DialogInterface.OnClickListener listener){
+        return new AlertDialog.Builder(this).setTitle(title)
+                .setPositiveButton(getString(R.string.confirm), listener)
+                .setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Toast.makeText(MainActivity.this, R.string.cancelled, Toast.LENGTH_SHORT).show();
+                    }
+                }).create();
+    }
+
+    private Dialog setTimeDialog(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = getLayoutInflater();
+        View layout = inflater.inflate(R.layout.dialog_set_time, null);
+        final RadioButton setTimeRadioButton = (RadioButton) layout.findViewById(R.id.radioButton);
+        final EditText minutesEditText = (EditText) layout.findViewById(R.id.editText);
+
+        return builder.setTitle(getString(R.string.set_playing_time)).setView(layout).setPositiveButton(getString(R.string.confirm), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                long value = minutesEditText.getText().toString().length() > 0? (Long.parseLong(minutesEditText.getText().toString()))*60 : 0;
+                if(!setTimeRadioButton.isChecked()){
+                    value = preferences.getLong(PLAYING_TIME_KEY, 0) + value;
+                }
+                preferences.edit().putLong(PLAYING_TIME_KEY, value).apply();
+                Toast.makeText(MainActivity.this, R.string.time_updated, Toast.LENGTH_SHORT).show();
+                Log.e("Main", "setTime " + value);
+                postResult(value, preferences.getLong(STANDBY_TIME_KEY, 0));
+            }
+        }).setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Toast.makeText(MainActivity.this, R.string.cancelled, Toast.LENGTH_SHORT).show();
+            }
+        }).create();
     }
 }

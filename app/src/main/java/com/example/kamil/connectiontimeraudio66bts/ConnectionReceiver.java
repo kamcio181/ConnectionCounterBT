@@ -1,19 +1,12 @@
 package com.example.kamil.connectiontimeraudio66bts;
 
 import android.app.ActivityManager;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.media.AudioManager;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-
-import java.util.concurrent.TimeUnit;
 
 public class ConnectionReceiver extends BroadcastReceiver {
     private static final String TAG = "ConnectionReceiver";
