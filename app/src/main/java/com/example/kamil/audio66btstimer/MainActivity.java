@@ -24,9 +24,6 @@ import android.widget.Toast;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity {
-    private static final String PREFS_NAME = "PrefsName";
-    private static final String PLAYING_TIME_KEY = "playing";
-    private static final String STANDBY_TIME_KEY = "standby";
     private TextView textView;
     private SharedPreferences preferences;
     private final StringBuilder builder = new StringBuilder();
@@ -36,7 +33,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         textView = (TextView) findViewById(R.id.textView);
 
-        preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        preferences = getSharedPreferences(Constants.PREFS_NAME, MODE_PRIVATE);
     }
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -53,13 +50,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        postResult(preferences.getLong(PLAYING_TIME_KEY, 0), preferences.getLong(STANDBY_TIME_KEY, 0));
+        postResult(preferences.getLong(Constants.PLAYING_TIME, 0), preferences.getLong(Constants.STANDBY_TIME, 0));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(receiver, new IntentFilter(MyService.NOTIFICATION));
+        registerReceiver(receiver, new IntentFilter(Constants.NOTIFICATION));
     }
     @Override
     protected void onPause() {
@@ -103,7 +100,10 @@ public class MainActivity extends Activity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         Toast.makeText(MainActivity.this, R.string.timer_cleared, Toast.LENGTH_SHORT).show();
-                        preferences.edit().remove(PLAYING_TIME_KEY).remove(STANDBY_TIME_KEY).apply();
+                        preferences.edit().remove(Constants.PLAYING_TIME).remove(Constants.STANDBY_TIME).apply();
+                        Intent intent = new Intent(MainActivity.this, MyService.class);
+                        intent.putExtra(Constants.RESET_TIMER, true);
+                        startService(intent);
                         postResult(0, 0);
                     }
                 }).show();
@@ -137,12 +137,12 @@ public class MainActivity extends Activity {
             public void onClick(DialogInterface dialog, int which) {
                 long value = minutesEditText.getText().toString().length() > 0? (Long.parseLong(minutesEditText.getText().toString()))*60 : 0;
                 if(!setTimeRadioButton.isChecked()){
-                    value = preferences.getLong(PLAYING_TIME_KEY, 0) + value;
+                    value = preferences.getLong(Constants.PLAYING_TIME, 0) + value;
                 }
-                preferences.edit().putLong(PLAYING_TIME_KEY, value).apply();
+                preferences.edit().putLong(Constants.PLAYING_TIME, value).apply();
                 Toast.makeText(MainActivity.this, R.string.time_updated, Toast.LENGTH_SHORT).show();
                 Log.e("Main", "setTime " + value);
-                postResult(value, preferences.getLong(STANDBY_TIME_KEY, 0));
+                postResult(value, preferences.getLong(Constants.STANDBY_TIME, 0));
             }
         }).setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
             @Override

@@ -17,10 +17,6 @@ import java.util.concurrent.TimeUnit;
 
 public class MyService extends Service {
     private static final String TAG = "Service";
-    public static final String NOTIFICATION = "com.example.kamil.connectiontimeraudio66bts.myservice.receiver";
-    private static final String PREFS_NAME = "PrefsName";
-    private static final String PLAYING_TIME_KEY = "playing";
-    private static final String STANDBY_TIME_KEY = "standby";
     private static SharedPreferences preferences;
     private static Runnable runnable;
     private static AudioManager audioManager;
@@ -41,11 +37,11 @@ public class MyService extends Service {
         super.onCreate();
         Log.e(TAG, "onCreate");
 
-        preferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        preferences = getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE);
         audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
         notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-        timePlaying = preferences.getLong(PLAYING_TIME_KEY, 0);
-        timeStandby = preferences.getLong(STANDBY_TIME_KEY, 0);
+        timePlaying = preferences.getLong(Constants.PLAYING_TIME, 0);
+        timeStandby = preferences.getLong(Constants.STANDBY_TIME, 0);
         stringBuilder = new StringBuilder();
 
         Log.e(TAG, stringBuilder.delete(0, stringBuilder.length()).append("playing ").
@@ -120,8 +116,8 @@ public class MyService extends Service {
         builder.setOngoing(false);
         notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
 
-        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
+        preferences.edit().putLong(Constants.PLAYING_TIME, timePlaying)
+                .putLong(Constants.STANDBY_TIME, timeStandby).apply();
     }
 
     @Override
@@ -134,14 +130,18 @@ public class MyService extends Service {
         builder.setOngoing(false);
         notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
 
-        preferences.edit().putLong(PLAYING_TIME_KEY, timePlaying)
-                .putLong(STANDBY_TIME_KEY, timeStandby).apply();
+        preferences.edit().putLong(Constants.PLAYING_TIME, timePlaying)
+                .putLong(Constants.STANDBY_TIME, timeStandby).apply();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.e(TAG, "onStart");
-        handler.postDelayed(runnable, 1000);
+        if(intent.hasExtra(Constants.RESET_TIMER)){
+            timePlaying = 0;
+            timeStandby = 0;
+        } else
+            handler.postDelayed(runnable, 1000);
         return super.onStartCommand(intent, Service.START_STICKY, startId);
     }
 
@@ -152,7 +152,7 @@ public class MyService extends Service {
     }
 
     private void publishTime() {
-        Intent intent = new Intent(NOTIFICATION);
+        Intent intent = new Intent(Constants.NOTIFICATION);
         intent.putExtra(Constants.PLAYING_TIME, timePlaying);
         intent.putExtra(Constants.STANDBY_TIME, timeStandby);
         sendBroadcast(intent);
