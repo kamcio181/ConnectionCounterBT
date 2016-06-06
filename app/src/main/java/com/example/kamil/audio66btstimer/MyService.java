@@ -28,6 +28,7 @@ public class MyService extends Service {
     private static boolean wasScreenOnPreviously;
     private static StringBuilder stringBuilder;
     private static boolean isScreenOn;
+    private static boolean isRunning = false;
 
     public MyService() {
     }
@@ -112,6 +113,7 @@ public class MyService extends Service {
         Log.e(TAG, "onDestroy");
 
         handler.removeCallbacks(runnable);
+        isRunning = false;
 
         builder.setOngoing(false);
         notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
@@ -126,6 +128,7 @@ public class MyService extends Service {
         Log.e(TAG, "onTaskRemoved");
 
         handler.removeCallbacks(runnable);
+        isRunning = false;
 
         builder.setOngoing(false);
         notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
@@ -140,8 +143,10 @@ public class MyService extends Service {
         if(intent.hasExtra(Constants.RESET_TIMER)){
             timePlaying = 0;
             timeStandby = 0;
-        } else
+        } else if(!isRunning) {
+            isRunning = true;
             handler.postDelayed(runnable, 1000);
+        }
         return super.onStartCommand(intent, Service.START_STICKY, startId);
     }
 
