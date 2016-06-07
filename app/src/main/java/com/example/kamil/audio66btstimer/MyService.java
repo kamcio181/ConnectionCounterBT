@@ -140,7 +140,7 @@ public class MyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.e(TAG, "onStart");
-        if(intent.hasExtra(Constants.RESET_TIMER)){
+        if(intent != null && intent.hasExtra(Constants.RESET_TIMER)){
             timePlaying = 0;
             timeStandby = 0;
         } else if(!isRunning) {
