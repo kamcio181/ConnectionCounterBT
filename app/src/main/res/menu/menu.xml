@@ -10,4 +10,9 @@
         android:orderInCategory="200"
         android:title="@string/set"
         android:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_log"
+        android:orderInCategory="300"
+        android:title="@string/log"
+        android:showAsAction="ifRoom" />
 </menu>

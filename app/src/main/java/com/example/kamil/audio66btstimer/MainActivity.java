@@ -3,6 +3,7 @@ package com.example.kamil.audio66btstimer;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -21,6 +22,12 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity {
@@ -94,7 +101,7 @@ public class MainActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch (id){
+        switch (id) {
             case R.id.action_reset:
                 getConfirmationDialog("Do you want to reset timer?", new DialogInterface.OnClickListener() {
                     @Override
@@ -105,16 +112,49 @@ public class MainActivity extends Activity {
                         intent.putExtra(Constants.RESET_TIMER, true);
                         startService(intent);
                         postResult(0, 0);
+                        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                        notificationManager.cancel(Constants.NOTIFICATION_ID);
+                        clearLog();
                     }
                 }).show();
                 break;
             case R.id.action_set:
                 setTimeDialog().show();
                 break;
+            case R.id.action_log:
+                Dialog dialog;
+                if((dialog = getLogDialog()) != null)
+                    dialog.show();
+                else
+                    Toast.makeText(this, "Log is empty", Toast.LENGTH_SHORT).show();
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
-    private Dialog getConfirmationDialog(String title, DialogInterface.OnClickListener listener){
+
+    private Dialog getLogDialog() {
+        BufferedReader input;
+        File file;
+        try {
+            file = new File(getFilesDir(), Constants.LOG_NAME);
+            if(file.exists()) {
+                input = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+                String line;
+                StringBuilder buffer = new StringBuilder();
+                while ((line = input.readLine()) != null) {
+                    buffer.append(line).append("\n");
+                }
+                return new AlertDialog.Builder(this).setTitle("Log").setMessage(buffer.toString().trim()).create();
+            }
+            return null;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+
+    }
+
+    private Dialog getConfirmationDialog(String title, DialogInterface.OnClickListener listener) {
         return new AlertDialog.Builder(this).setTitle(title)
                 .setPositiveButton(getString(R.string.confirm), listener)
                 .setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
@@ -125,7 +165,7 @@ public class MainActivity extends Activity {
                 }).create();
     }
 
-    private Dialog setTimeDialog(){
+    private Dialog setTimeDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         LayoutInflater inflater = getLayoutInflater();
         View layout = inflater.inflate(R.layout.dialog_set_time, null);
@@ -135,9 +175,13 @@ public class MainActivity extends Activity {
         return builder.setTitle(getString(R.string.set_playing_time)).setView(layout).setPositiveButton(getString(R.string.confirm), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                long value = minutesEditText.getText().toString().length() > 0? (Long.parseLong(minutesEditText.getText().toString()))*60 : 0;
-                if(!setTimeRadioButton.isChecked()){
+                long value = minutesEditText.getText().toString().length() > 0 ? (Long.parseLong(minutesEditText.getText().toString())) * 60 : 0;
+                if (!setTimeRadioButton.isChecked()) {
                     value = preferences.getLong(Constants.PLAYING_TIME, 0) + value;
+                    saveToLog("Added " + minutesEditText.getText().toString() + " min");
+                } else {
+                    clearLog();
+                    saveToLog("Set " + minutesEditText.getText().toString() + " min");
                 }
                 preferences.edit().putLong(Constants.PLAYING_TIME, value).apply();
                 Toast.makeText(MainActivity.this, R.string.time_updated, Toast.LENGTH_SHORT).show();
@@ -150,5 +194,22 @@ public class MainActivity extends Activity {
                 Toast.makeText(MainActivity.this, R.string.cancelled, Toast.LENGTH_SHORT).show();
             }
         }).create();
+    }
+
+    private void clearLog() {
+        File log = new File(getFilesDir(), Constants.LOG_NAME);
+        if (log.exists())
+            log.delete();
+    }
+
+    private void saveToLog(String message) {
+        FileOutputStream outputStream;
+        try {
+            outputStream = new FileOutputStream(new File(getFilesDir(), Constants.LOG_NAME), true);
+            outputStream.write(message.getBytes());
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -13,6 +13,9 @@ import android.os.IBinder;
 import android.util.Log;
 import android.view.Display;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 public class MyService extends Service {
@@ -22,13 +25,13 @@ public class MyService extends Service {
     private static AudioManager audioManager;
     private static NotificationManager notificationManager;
     private static Notification.Builder builder;
-    private static long timePlaying, timeStandby;
-    private static int notificationId = 1;
+    private static long timePlaying, timeStandby, startTime;
     private static final android.os.Handler handler = new android.os.Handler();
     private static boolean wasScreenOnPreviously;
     private static StringBuilder stringBuilder;
     private static boolean isScreenOn;
     private static boolean isRunning = false;
+    private static boolean wasPlaying;
 
     public MyService() {
     }
@@ -55,6 +58,9 @@ public class MyService extends Service {
         builder.setContentIntent(startActivityPendingIntent).
                 setSmallIcon(R.mipmap.ic_launcher).setOngoing(true);
 
+        startTime = Calendar.getInstance().getTimeInMillis();
+        wasPlaying = audioManager.isMusicActive();
+
         runnable = new Runnable() {
             @Override
             public void run() {
@@ -64,25 +70,31 @@ public class MyService extends Service {
                 isScreenOn = isScreenOn();
                 Log.e(TAG, stringBuilder.delete(0, stringBuilder.length()).append("isScreenOn ").
                         append(isScreenOn).toString());
-                if(audioManager.isMusicActive()){
+                Boolean isMusicActive = audioManager.isMusicActive();
+                if(isMusicActive){
                     Log.e(TAG, "music IS active");
                     timePlaying++;
                     if(timePlaying % 60 == 0 && isScreenOn) {
                         Log.e(TAG, "timePlaying/60 notify");
-                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+                        notificationManager.notify(Constants.NOTIFICATION_ID, getContent(builder, timePlaying, timeStandby, false).build());
                     }
                 } else {
                     Log.e(TAG, "music is NOT active");
                     timeStandby++;
                     if(timeStandby % 60 == 0 && isScreenOn) {
                         Log.e(TAG, "timePlaying/60 notify");
-                        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+                        notificationManager.notify(Constants.NOTIFICATION_ID, getContent(builder, timePlaying, timeStandby, false).build());
                     }
+                }
+
+                if(isMusicActive != wasPlaying){
+                    saveToLog(wasPlaying, startTime, Calendar.getInstance().getTimeInMillis());
+                    startTime = Calendar.getInstance().getTimeInMillis();
                 }
 
                 if (isScreenOn && !wasScreenOnPreviously){
                     Log.e(TAG, "screen was turned on");
-                    notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, false).build());
+                    notificationManager.notify(Constants.NOTIFICATION_ID, getContent(builder, timePlaying, timeStandby, false).build());
                 }
 
                 if(isScreenOn){
@@ -90,6 +102,7 @@ public class MyService extends Service {
                 }
 
                 wasScreenOnPreviously = isScreenOn;
+                wasPlaying = isMusicActive;
                 handler.postDelayed(this, 1000);
             }
         };
@@ -115,8 +128,10 @@ public class MyService extends Service {
         handler.removeCallbacks(runnable);
         isRunning = false;
 
+        saveToLog(wasPlaying, startTime, Calendar.getInstance().getTimeInMillis());
+
         builder.setOngoing(false);
-        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
+        notificationManager.notify(Constants.NOTIFICATION_ID, getContent(builder, timePlaying, timeStandby, true).build());
 
         preferences.edit().putLong(Constants.PLAYING_TIME, timePlaying)
                 .putLong(Constants.STANDBY_TIME, timeStandby).apply();
@@ -131,7 +146,7 @@ public class MyService extends Service {
         isRunning = false;
 
         builder.setOngoing(false);
-        notificationManager.notify(notificationId, getContent(builder, timePlaying, timeStandby, true).build());
+        notificationManager.notify(Constants.NOTIFICATION_ID, getContent(builder, timePlaying, timeStandby, true).build());
 
         preferences.edit().putLong(Constants.PLAYING_TIME, timePlaying)
                 .putLong(Constants.STANDBY_TIME, timeStandby).apply();
@@ -199,5 +214,28 @@ public class MyService extends Service {
         }
 
         return builder.setStyle(new Notification.BigTextStyle().bigText(content)).setContentTitle(title);
+    }
+
+    private void saveToLog(boolean isPlaying, long startTime, long stopTime){
+        FileOutputStream outputStream;
+        stringBuilder.delete(0, stringBuilder.length());
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(startTime);
+
+        stringBuilder.append(isPlaying? "Playing " : "Standby ")
+                .append(String.format("%1$te/%1$tm/%1$tY %1$tT", calendar)).append(" - ");
+        calendar.setTimeInMillis(stopTime);
+        stringBuilder.append(String.format("%1$te/%1$tm/%1$tY %1$tT", calendar)).append("; ");
+        stringBuilder.append(String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(stopTime-startTime)))
+                .append(" min\n");
+
+        try {
+            outputStream = new FileOutputStream(new File(getFilesDir(), Constants.LOG_NAME), true);
+            outputStream.write(stringBuilder.toString().getBytes());
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
