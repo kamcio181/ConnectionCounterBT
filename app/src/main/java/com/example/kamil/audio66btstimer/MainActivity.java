@@ -1,6 +1,7 @@
 package com.example.kamil.audio66btstimer;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.NotificationManager;
@@ -108,9 +109,11 @@ public class MainActivity extends Activity {
                     public void onClick(DialogInterface dialog, int which) {
                         Toast.makeText(MainActivity.this, R.string.timer_cleared, Toast.LENGTH_SHORT).show();
                         preferences.edit().remove(Constants.PLAYING_TIME).remove(Constants.STANDBY_TIME).apply();
-                        Intent intent = new Intent(MainActivity.this, MyService.class);
-                        intent.putExtra(Constants.RESET_TIMER, true);
-                        startService(intent);
+                        if(isServiceRunning()) {
+                            Intent intent = new Intent(MainActivity.this, MyService.class);
+                            intent.putExtra(Constants.RESET_TIMER, true);
+                            startService(intent);
+                        }
                         postResult(0, 0);
                         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                         notificationManager.cancel(Constants.NOTIFICATION_ID);
@@ -130,6 +133,16 @@ public class MainActivity extends Activity {
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private boolean isServiceRunning(){
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (MyService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Dialog getLogDialog() {
