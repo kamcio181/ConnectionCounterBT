@@ -1,5 +1,6 @@
 package com.example.kamil.audio66btstimer;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
@@ -11,7 +12,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -26,12 +32,16 @@ import android.widget.Toast;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity {
+    private static final int PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 0;
     private TextView textView;
     private SharedPreferences preferences;
     private final StringBuilder builder = new StringBuilder();
@@ -157,7 +167,13 @@ public class MainActivity extends Activity {
                 while ((line = input.readLine()) != null) {
                     buffer.append(line).append("\n");
                 }
-                return new AlertDialog.Builder(this).setTitle("Log").setMessage(buffer.toString().trim()).create();
+                return new AlertDialog.Builder(this).setTitle("Log").setMessage(buffer.toString().trim())
+                        .setPositiveButton("Extract logs to file", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                extractLogs();
+                            }
+                        }).create();
             }
             return null;
         } catch (IOException e) {
@@ -165,6 +181,76 @@ public class MainActivity extends Activity {
         }
         return null;
 
+    }
+
+    private void extractLogs() {
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this,
+                    (new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}), PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE);
+        } else {
+            performLogExtraction();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if(requestCode == PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+            extractLogs();
+        } else {
+            Toast.makeText(this, "Writing permission required to extract logs", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void performLogExtraction() {
+        if(copyFile(getFilesDir()+"/", Constants.LOG_NAME, Environment.getExternalStorageDirectory().getPath() + "/")){
+            Toast.makeText(this,"Logs extracted to " + Environment.getExternalStorageDirectory().getPath() + "/" + Constants.LOG_NAME, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this,"Logs extraction failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private boolean copyFile(String inputPath, String inputFile, String outputPath) {
+
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+
+            //create output directory if it doesn't exist
+            File dir = new File (outputPath);
+            if (!dir.exists())
+            {
+                dir.mkdirs();
+            }
+
+
+            in = new FileInputStream(inputPath + inputFile);
+            out = new FileOutputStream(outputPath + inputFile);
+
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            in.close();
+            in = null;
+
+            // write the output file (You have now copied the file)
+            out.flush();
+            out.close();
+            out = null;
+            return true;
+
+        }  catch (FileNotFoundException fnfe1) {
+            Log.e("tag", fnfe1.getMessage());
+            return false;
+        }
+        catch (Exception e) {
+            Log.e("tag", e.getMessage());
+            return false;
+        }
     }
 
     private Dialog getConfirmationDialog(String title, DialogInterface.OnClickListener listener) {

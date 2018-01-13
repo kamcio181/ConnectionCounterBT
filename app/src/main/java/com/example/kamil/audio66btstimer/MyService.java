@@ -76,7 +76,8 @@ public class MyService extends Service {
                     timePlaying++;
                     if(timePlaying % 60 == 0 && isScreenOn) {
                         Log.e(TAG, "timePlaying/60 notify");
-                        notificationManager.notify(Constants.NOTIFICATION_ID, getContent(builder, timePlaying, timeStandby, false).build());
+                        notificationManager.notify(Constants.NOTIFICATION_ID,
+                                getContent(builder, timePlaying, timeStandby, false).build());
                     }
                 } else {
                     Log.e(TAG, "music is NOT active");
